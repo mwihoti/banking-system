@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense
 
-use std::path::PathBuf;
+use std::{fmt::Result, path::PathBuf};
 
 use crate::luhn::AccountNumber;
 
@@ -87,5 +87,36 @@ db.execute(
         &new_account.balance,
 
 ),)?;
+Ok(())
+}
+
+/// depositing money into currently active account
+/// 
+pub fn deposit(amount: &str, pin: &str, account_number: &str) -> Result<()> {
+    let db = initialise_bankdb()?;
+    let query_string = format!(
+        "
+        SELECT pin FROM account where account_number='{}';",
+        account_number
+    );
+    let pin_from_db: String = db.query_row(&query_string, [], |row| row.get(0))?;
+    let correct_pin = { pin_from_db == pin };
+
+    if correct_pin {
+        db.execute(
+            "UPDATE account SET balance  = balance + ?1 WHERE account_number=?2",
+            (amount, account_number),
+        )?;
+        let query_string = format!(
+            "SELECT balance FROM account where account_number='{}';",
+            account_number
+        );
+        let amount_from_db: usize = db.query_row(&query_string, [], |row| row.get(0))?;
+        println!(
+            "The account number `{}` now has a balance f `{}`.\n",
+            &account_number, &amount_from_db
+        ); }else {
+    eprintln!("Wrong pin. Try again...");
+}
 Ok(())
 }
