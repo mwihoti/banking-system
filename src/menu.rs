@@ -91,5 +91,5 @@ pub fn prompt(account_number: &str) -> std::io::Result<()> {
                 eprintln!("Invalid choice. Please try again...");
             }
         }
-        OK(())
+        Ok(())
 }

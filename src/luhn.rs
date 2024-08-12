@@ -58,7 +58,7 @@ impl Display for AccountNumber {
 }
 /// implementing methods unique to AccountNumber
 impl AccountNumber {
-    pub fn new(length: usize) -> self {
+    pub fn new(length: usize) -> Self {
         let mut payload: Vec<u8> = Vec::new();
         for _ in 1..=length - 1 {
             let mut rng = thread_rng();
@@ -92,7 +92,7 @@ pub fn verify(account_number: &str) -> bool {
 
     let mut payload: Vec<u8> = digits
         .iter()
-        .map(|digit| digit/to_digit(10).expect("Not a number") as u8)
+        .map(|digit| digit.to_digit(10).expect("Not a number") as u8)
         .collect();
 
     let check_digit = payload.pop().expect("This shouldn't be an empty iterator");
@@ -121,7 +121,7 @@ fn get_check_digit(payload: &[u8]) -> u8 {
             let sum = {
                 let mut x = 0;
                 for digit in digits {
-                    let y: u8 - digit;
+                    let y: u8 = digit;
                     x += y;
                 }
                 x

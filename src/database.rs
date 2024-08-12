@@ -28,5 +28,5 @@ pub fn initialise_bankdb() -> Result<Connection> {
     balance INTEGER DEFAULT 0
 )";
 db.execute(command, ())?;
-ok(db)
+Ok(db)
 }
