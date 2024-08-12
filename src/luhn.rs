@@ -86,7 +86,7 @@ impl AccountNumber {
 }
 
 /// Helper functions for AccountNumber
-pb fn verify(account_number: &str) -> bool {
+pub fn verify(account_number: &str) -> bool {
     let account_number = account_number.to_string();
     let digits: Vec<char> = account_number.trim().chars().collect();
 
@@ -100,6 +100,42 @@ pb fn verify(account_number: &str) -> bool {
     get_check_digit(&payload) == check_digit
 
 }
+/// Helper function to get the "Nonce" or check digit to validate the account number
+
+fn get_check_digit(payload: &[u8]) -> u8 {
+    let mut new_payload = payload.iter().copied();
+    let mut luhn_sum = 0;
+    let mut index = 0;
+
+    while let Some(item) = new_payload.next_back() {
+        let divisible_by_2 = { (index as f32 % 2_f32) == 0_f32};
+        if divisible_by_2 {
+            let mul = item * 2;
+
+            let digits: Vec<u8> = mul
+                .to_string()
+                .chars()
+                .map(|d| d.to_digit(10).expect("Not a number character") as u8)
+                .collect();
+
+            let sum = {
+                let mut x = 0;
+                for digit in digits {
+                    let y: u8 - digit;
+                    x += y;
+                }
+                x
+            };
+            luhn_sum += sum;
+        } else {
+            luhn_sum += item;
+        };
+        index += 1;
+
+    }
+    10 - (luhn_sum % 10)
+}
+
 
 #[cfg(test)]
 mod tests {
