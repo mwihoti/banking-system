@@ -1,33 +1,32 @@
-// SPDX-License-Identifier: Unlicense
-
 use rand::prelude::*;
-use std::fmt::{Display, Result};
+use std::fmt::{Display, Formatter, Result};
 use std::str::FromStr;
+use std::result::Result as StdResult;
+use std::io;
 
 /// The account number uses random number generation
 /// for the payload. This payload is then calculated
 /// to produce the check digit.
 #[derive(Debug)]
 pub struct AccountNumber {
-        /// Randomly generated number. Each digit is within 0..9
-        pub(crate) payload: Vec<u8>,
-        /// Check digit using the Luhn formula
-        pub(crate) check_digit: u8,
-
+    /// Randomly generated number. Each digit is within 0..9
+    pub(crate) payload: Vec<u8>,
+    /// Check digit using the Luhn formula
+    pub(crate) check_digit: u8,
 }
 
-/// defining the default length of an account number
+/// Defining the default length of an account number
 impl Default for AccountNumber {
     fn default() -> Self {
         Self::new(10)
     }
 }
-/// FromStr trait to transform into account numbers from strings
 
+/// FromStr trait to transform strings into account numbers
 impl FromStr for AccountNumber {
-    type Err = std::io::ErrorKind;
+    type Err = io::Error;
 
-    fn from_str(s: &str) -> Result<Self, std::io::ErrorKind> {
+    fn from_str(s: &str) -> StdResult<Self, io::Error> {
         if verify(s) {
             let mut payload: Vec<u8> = s
                 .chars()
@@ -43,20 +42,21 @@ impl FromStr for AccountNumber {
             })
         } else {
             eprintln!("{s} is not a valid account number");
-            Err(std::io::ErrorKind::InvalidData)
+            Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid account number"))
         }
     }
 }
-/// printing AccountNumber with Display trait
 
+/// Printing AccountNumber with Display trait
 impl Display for AccountNumber {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut account_number: String = self.payload.iter().map(|d| d.to_string()).collect();
         account_number.push_str(&self.check_digit.to_string());
         write!(f, "{}", account_number)
     }
 }
-/// implementing methods unique to AccountNumber
+
+/// Implementing methods unique to AccountNumber
 impl AccountNumber {
     pub fn new(length: usize) -> Self {
         let mut payload: Vec<u8> = Vec::new();
@@ -64,7 +64,6 @@ impl AccountNumber {
             let mut rng = thread_rng();
             let zero_to_nine: u8 = rng.gen_range(0..=9);
             payload.push(zero_to_nine);
-
         }
         let check_digit = get_check_digit(&payload);
 
@@ -98,17 +97,16 @@ pub fn verify(account_number: &str) -> bool {
     let check_digit = payload.pop().expect("This shouldn't be an empty iterator");
 
     get_check_digit(&payload) == check_digit
-
 }
-/// Helper function to get the "Nonce" or check digit to validate the account number
 
+/// Helper function to get the "Nonce" or check digit to validate the account number
 fn get_check_digit(payload: &[u8]) -> u8 {
     let mut new_payload = payload.iter().copied();
     let mut luhn_sum = 0;
     let mut index = 0;
 
     while let Some(item) = new_payload.next_back() {
-        let divisible_by_2 = { (index as f32 % 2_f32) == 0_f32};
+        let divisible_by_2 = (index as f32 % 2_f32) == 0_f32;
         if divisible_by_2 {
             let mul = item * 2;
 
@@ -118,31 +116,22 @@ fn get_check_digit(payload: &[u8]) -> u8 {
                 .map(|d| d.to_digit(10).expect("Not a number character") as u8)
                 .collect();
 
-            let sum = {
-                let mut x = 0;
-                for digit in digits {
-                    let y: u8 = digit;
-                    x += y;
-                }
-                x
-            };
+            let sum = digits.iter().sum::<u8>();
             luhn_sum += sum;
         } else {
             luhn_sum += item;
-        };
+        }
         index += 1;
-
     }
     10 - (luhn_sum % 10)
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super ::*;
+    use super::*;
 
     #[test]
-    /// valid account numbers in different lengths
+    /// Valid account numbers in different lengths
     fn valid_account_numbers_in_different_lengths() {
         let accounts = [
             AccountNumber::from_str("35001576202"),
@@ -152,7 +141,7 @@ mod tests {
         ];
 
         for account in accounts {
-            assert! (account.is_ok());
+            assert!(account.is_ok());
         }
     }
 
