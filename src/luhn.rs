@@ -85,6 +85,21 @@ impl AccountNumber {
     }
 }
 
+/// Helper functions for AccountNumber
+pb fn verify(account_number: &str) -> bool {
+    let account_number = account_number.to_string();
+    let digits: Vec<char> = account_number.trim().chars().collect();
+
+    let mut payload: Vec<u8> = digits
+        .iter()
+        .map(|digit| digit/to_digit(10).expect("Not a number") as u8)
+        .collect();
+
+    let check_digit = payload.pop().expect("This shouldn't be an empty iterator");
+
+    get_check_digit(&payload) == check_digit
+
+}
 
 #[cfg(test)]
 mod tests {
