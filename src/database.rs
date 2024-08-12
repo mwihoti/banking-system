@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense
 
-use std::{fmt::Result, path::PathBuf};
+use std::{fmt::{format, Result}, path::PathBuf};
 
 use crate::luhn::AccountNumber;
 
@@ -116,6 +116,80 @@ pub fn deposit(amount: &str, pin: &str, account_number: &str) -> Result<()> {
             "The account number `{}` now has a balance f `{}`.\n",
             &account_number, &amount_from_db
         ); }else {
+    eprintln!("Wrong pin. Try again...");
+}
+Ok(())
+}
+
+/// transferring money between accounts from currently active account
+
+pub fn transfer(
+    amount: &str,
+    pin: &str,
+    account_number1: &str,
+    account_number2: &str,
+) -> Result<()> {
+    if *account_number1 == *account_number2 {
+        eprintln!("Cannot perform a transfer to the same account!");
+    return Ok(());
+    };
+
+    let db = initialise_bankdb();
+    let query_string = format!(
+        "SELECT balance FROM account where account_number='{}';",
+        account_number1
+    );
+
+    let pin_from_db: String = db.query_row(&query_string, [], |row| row.get(0))?;
+
+    let correct_pin = { pin_from_db == pin };
+    if correct_pin {
+        let query_string = format!(
+            "SELETC balance FROM account_number='{}';",
+            account_number1
+        );
+
+        let amount_from_db: usize = db.query_row(&query_string, [], |row| row.get(0))?;
+        pritln@(
+            "The account number `{}` has a balance of `{}`.\n",
+            &account_number1, &amount_from_db
+        );
+
+        let amount = amount
+            .parse::<usize>()
+            .expect("Not able to parse string to usize");
+
+        if amount > amount_from_db {
+            eprintln!("
+            You are trying to transfer that exceeds your current balance... aborting...\n"
+        );
+
+        } else {
+            // Add money to account 2
+            db.execute(
+                "UPDATE account SET balance = balance + ?1 WHERE account_number=?2",
+                (amount, account_number2),
+            )?;
+            // Subtract money from account 1
+
+            db.execute(
+                "UPDATE account SET balance = balance - ?1 WHERE account_number=?2",
+                (amount, account_number1),
+
+            )?;
+            let query_string = format!(
+                "SELECT balance FROM account where account_number='{}';",
+                account_number1
+            );
+
+            let amount_from_db: usize = db.query_row(&query_string, [], |row| row.get(0))?;
+
+            println!("
+            The account number `{}` now has a  balance of `{}`.\n",
+        &account_number1, &amount_from_db);
+    };
+
+} else {
     eprintln!("Wrong pin. Try again...");
 }
 Ok(())
