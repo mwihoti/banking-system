@@ -13,8 +13,14 @@ pub struct Account {
     pub pin: String,
 }
 
+#[cfg(not(test))]
 fn database_path() -> PathBuf {
-    PathBuf::from("bank.s3db")
+	PathBuf::from("bank.s3db")
+}
+
+#[cfg(test)]
+fn database_path() -> PathBuf {
+	PathBuf::from("mock_bank.s3db")
 }
 
 pub fn initialise_bankdb() -> SqlResult<Connection> {
@@ -255,4 +261,38 @@ pub fn show_balance(account_number: &str) -> SqlResult<()> {
         &account_number, &amount_from_db
     );
     Ok(())
+}
+fn fetch_account(account: &str) -> Result<Account> {
+	let db = initialise_bankdb()?;
+	let mut stmt = db.prepare("SELECT id, account_number, balance, pin FROM account")?;
+	let accounts = stmt.query_map([], |row| {
+    	Ok(Account {
+        	id: row.get(0)?,
+        	account_number: row.get(1)?,
+        	balance: row.get(2)?,
+        	pin: row.get(3)?,
+    	})
+	})?;
+
+	let accounts = accounts.flatten().find(|acc| acc.account_number == account);
+	if let Some(fetched_account) = accounts {
+    		Ok(fetched_account)
+	} else {
+    		Err(rusqlite::Error::QueryReturnedNoRows)
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	
+	#[test]
+	fn created_account_is_correct_fetched_from_db() -> Result<()> {
+    		let acc1 = Account::new()?;
+    		let acc2 = fetch_account(&acc1.account_number)?;
+
+    		assert_eq!(acc1.id, acc2.id);
+
+    		Ok(())
+	}
 }
